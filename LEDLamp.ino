@@ -3,6 +3,7 @@
 #define NUM_LEDS 32
 
 CRGB leds[NUM_LEDS];
+float curBrightness = 0.0;
 
 float floatMap(float x, float in_min, float in_max, float out_min, float out_max) {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
@@ -19,7 +20,7 @@ void printValues(int analogVal, float voltageVal, float brightness) {
   Serial.println(brightness);
 }
 
-void setRGBs() {
+void setRGB() {
   for(int i = 0; i < NUM_LEDS; i++) {
     leds[i] = CRGB(255, 255, 255);
 //    leds[i] = CRGB(255, 0, 0);
@@ -27,6 +28,21 @@ void setRGBs() {
 //    leds[i] = CRGB(0, 0, 255);
   }
   FastLED.show();
+}
+
+void setLEDBrightness(int analogBrightnessVal){
+  // Rescale to potentiometer's voltage (from 0V to 5V):
+  float voltage = floatMap(analogBrightnessVal, 0, 1023, 0, 5);
+  //map brightness to range 30-255
+  float brightness = analogBrightnessVal / (float)1023 * (255 - 30) + 30;
+  
+  if (abs(brightness - curBrightness) > 1){
+    curBrightness = brightness;
+    FastLED.setBrightness(curBrightness);
+    Serial.println("changing");
+  }
+  
+  printValues(analogBrightnessVal, voltage, curBrightness);
 }
 
 void setup() {
@@ -39,17 +55,7 @@ void setup() {
 }
 
 void loop() {
-  int analogVal = analogRead(A0);
-  // Rescale to potentiometer's voltage (from 0V to 5V):
-  float voltage = floatMap(analogVal, 0, 1023, 0, 5);
-  float brightness = analogVal/3.84; //set brightness between 0 & 255
-  if (brightness > 255) {
-    brightness = 255; //max brightness
-  }
-  else if (brightness < 30) {
-    brightness = 30; //min brightness
-  }
-  FastLED.setBrightness(brightness);
-  setRGBs();
-  printValues(analogVal, voltage, brightness);
+  int analogBrightnessVal = analogRead(A0);
+  setLEDBrightness(analogBrightnessVal);
+  setRGB();
 }
